@@ -1,4 +1,4 @@
-    /* --- GAME ENGINE --- */
+ /* --- GAME ENGINE --- */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('game-container');
@@ -6,18 +6,18 @@
     let gameActive = false;
     let score = 0;
 
-    // Resizing
+    // Resizing - Critical for layout change
     function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        // Use container dimensions instead of window to respect the control bar
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
     }
     window.addEventListener('resize', resize);
-    resize();
-
+    
     // Game Objects
     const player = {
-        x: canvas.width / 2,
-        y: canvas.height / 2,
+        x: 0, // Will set in resize/init
+        y: 0,
         size: 40,
         speed: 5,
         dx: 0,
@@ -81,11 +81,23 @@
 
     function setupMobileBtn(id, dir) {
         const btn = document.getElementById(id);
-        const start = (e) => { e.preventDefault(); touchDirection = dir; btn.style.background = 'rgba(255,255,255,0.4)'; };
-        const end = (e) => { e.preventDefault(); if(touchDirection === dir) touchDirection = null; btn.style.background = 'rgba(255,255,255,0.15)'; };
         
+        const start = (e) => { 
+            e.preventDefault(); // Stop scrolling/zoom
+            touchDirection = dir; 
+            btn.style.background = 'rgba(255,255,255,0.4)'; 
+        };
+        
+        const end = (e) => { 
+            e.preventDefault(); 
+            if(touchDirection === dir) touchDirection = null; 
+            btn.style.background = 'rgba(255,255,255,0.1)'; 
+        };
+        
+        // Add listeners
         btn.addEventListener('touchstart', start, {passive: false});
         btn.addEventListener('touchend', end, {passive: false});
+        // Mouse fallback for testing
         btn.addEventListener('mousedown', start);
         btn.addEventListener('mouseup', end);
         btn.addEventListener('mouseleave', end);
@@ -153,7 +165,7 @@
             attempts++;
         }
 
-        // Fallback if screen is too small or unlucky rolls
+        // Fallback
         if (!validSpawn) {
             floatingItem = {
                 x: Math.random() * (canvas.width - 60) + 30,
@@ -168,9 +180,9 @@
         obstacles = [];
         let obstacleCount = currentItemIndex + 3; // Base difficulty
 
-        // Final Level Challenge: Horde Mode
+        // Final Level Challenge: Adjusted to be more fair
         if (currentItemIndex === items.length - 1) {
-            obstacleCount = 20; // Massive increase for the final heart
+            obstacleCount = 10; // Reduced from 20 to 10 for better playability
         }
 
         for(let i=0; i<obstacleCount; i++) {
@@ -305,7 +317,6 @@
                 ctx.fillText(obs.emoji, obs.x, obs.y);
 
                 // Collision with Player
-                // FIX: Calculate exact center-to-center distance for accurate collision
                 const pCenterX = player.x + player.size / 2;
                 const pCenterY = player.y + player.size / 2;
                 
@@ -313,7 +324,6 @@
                 const dy = pCenterY - obs.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Strictly touch: radius + radius
                 const hitThreshold = (player.size / 2) + (obs.size / 2);
 
                 if (player.invulnerable === 0 && distance < hitThreshold) {
@@ -322,8 +332,7 @@
                     container.classList.add('shake');
                     setTimeout(() => container.classList.remove('shake'), 500);
                     
-                    // Improved Knockback: Push player away from obstacle collision point
-                    // This works even if the player is standing still
+                    // Improved Knockback
                     const knockbackAngle = Math.atan2(dy, dx);
                     player.x += Math.cos(knockbackAngle) * 30;
                     player.y += Math.sin(knockbackAngle) * 30;
@@ -349,7 +358,6 @@
                 ctx.shadowBlur = 0;
 
                 // Item Pickup
-                // Simple distance check
                 const dx = (player.x + player.size/2) - floatingItem.x;
                 const dy = (player.y + player.size/2) - (floatingItem.y + bobY);
                 const dist = Math.sqrt(dx*dx + dy*dy);
@@ -405,10 +413,20 @@
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
+        
+        // Ensure player starts in center relative to current resize
+        player.x = canvas.width / 2 - player.size / 2;
+        player.y = canvas.height / 2 - player.size / 2;
+        
         gameActive = true;
         spawnLevel();
         update();
     }
     
+    // Initial setup
     resize();
+    // Center player initially just in case
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
+
     window.startGame = startGame;
