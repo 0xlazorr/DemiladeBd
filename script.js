@@ -1,4 +1,4 @@
- /* --- GAME ENGINE --- */
+/* --- GAME ENGINE --- */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('game-container');
@@ -6,9 +6,8 @@
     let gameActive = false;
     let score = 0;
 
-    // Resizing - Critical for layout change
+    // Resizing
     function resize() {
-        // Use container dimensions instead of window to respect the control bar
         canvas.width = container.clientWidth;
         canvas.height = container.clientHeight;
     }
@@ -16,7 +15,7 @@
     
     // Game Objects
     const player = {
-        x: 0, // Will set in resize/init
+        x: 0,
         y: 0,
         size: 40,
         speed: 5,
@@ -28,41 +27,11 @@
 
     // Data: Items + Corresponding Player Face
     const items = [
-        { 
-            emoji: "🍕", 
-            playerFace: "😋", 
-            text: "You have the best taste in food (and girlfriends).", 
-            title: "PIZZA POWER!", 
-            color: "#FF9F1C" 
-        },
-        { 
-            emoji: "💡", 
-            playerFace: "🤔", 
-            text: "Your ideas always inspire me.", 
-            title: "BIG BRAIN ENERGY", 
-            color: "#FFE66D" 
-        },
-        { 
-            emoji: "🎵", 
-            playerFace: "🕺", 
-            text: "You bring rhythm and joy to my life.", 
-            title: "VIBE CHECK PASSED", 
-            color: "#00f3ff" 
-        },
-        { 
-            emoji: "💪", 
-            playerFace: "😤", 
-            text: "I admire your strength and hustle.", 
-            title: "GRIND MODE", 
-            color: "#ff00ff" 
-        },
-        { 
-            emoji: "❤️", 
-            playerFace: "😍", 
-            text: "FINAL REWARD: Demilade, you are my favorite person. I love you!", 
-            title: "QUEST COMPLETE", 
-            color: "#ff0000" 
-        }
+        { emoji: "🍕", playerFace: "😋", text: "You have the best taste in food (and girlfriends).", title: "PIZZA POWER!", color: "#FF9F1C" },
+        { emoji: "💡", playerFace: "🤔", text: "Your ideas always inspire me.", title: "BIG BRAIN ENERGY", color: "#FFE66D" },
+        { emoji: "🎵", playerFace: "🕺", text: "You bring rhythm and joy to my life.", title: "VIBE CHECK PASSED", color: "#00f3ff" },
+        { emoji: "💪", playerFace: "😤", text: "I admire your strength and hustle.", title: "GRIND MODE", color: "#ff00ff" },
+        { emoji: "❤️", playerFace: "😍", text: "FINAL REWARD: Demilade, you are my favorite person. I love you!", title: "QUEST COMPLETE", color: "#ff0000" }
     ];
 
     let currentItemIndex = 0;
@@ -76,28 +45,36 @@
     window.addEventListener('keydown', (e) => keys[e.key] = true);
     window.addEventListener('keyup', (e) => keys[e.key] = false);
 
-    // Mobile Input Logic (Robust)
-    let touchDirection = null;
+    // Improved Mobile Input Logic (Stack-based)
+    // This allows holding one button, pressing another, and releasing, without losing the first input
+    const heldDirections = []; 
 
     function setupMobileBtn(id, dir) {
         const btn = document.getElementById(id);
         
         const start = (e) => { 
-            e.preventDefault(); // Stop scrolling/zoom
-            touchDirection = dir; 
-            btn.style.background = 'rgba(255,255,255,0.4)'; 
+            e.preventDefault(); 
+            if (!heldDirections.includes(dir)) {
+                heldDirections.push(dir);
+            }
+            btn.classList.add('active');
         };
         
         const end = (e) => { 
             e.preventDefault(); 
-            if(touchDirection === dir) touchDirection = null; 
-            btn.style.background = 'rgba(255,255,255,0.1)'; 
+            const index = heldDirections.indexOf(dir);
+            if (index > -1) {
+                heldDirections.splice(index, 1);
+            }
+            btn.classList.remove('active');
         };
         
         // Add listeners
         btn.addEventListener('touchstart', start, {passive: false});
         btn.addEventListener('touchend', end, {passive: false});
-        // Mouse fallback for testing
+        btn.addEventListener('touchcancel', end, {passive: false}); // Handle interruptions
+        
+        // Mouse fallback for desktop testing
         btn.addEventListener('mousedown', start);
         btn.addEventListener('mouseup', end);
         btn.addEventListener('mouseleave', end);
@@ -120,11 +97,13 @@
         if (keys['ArrowLeft'] || keys['a']) player.dx = -player.speed;
         if (keys['ArrowRight'] || keys['d']) player.dx = player.speed;
 
-        // Touch
-        if (touchDirection === 'up') player.dy = -player.speed;
-        if (touchDirection === 'down') player.dy = player.speed;
-        if (touchDirection === 'left') player.dx = -player.speed;
-        if (touchDirection === 'right') player.dx = player.speed;
+        // Touch (Priority to the last pressed button in the stack)
+        const touchDir = heldDirections.length > 0 ? heldDirections[heldDirections.length - 1] : null;
+
+        if (touchDir === 'up') player.dy = -player.speed;
+        if (touchDir === 'down') player.dy = player.speed;
+        if (touchDir === 'left') player.dx = -player.speed;
+        if (touchDir === 'right') player.dx = player.speed;
 
         // Boundary Check & Movement
         if (player.x + player.dx > 0 && player.x + player.size + player.dx < canvas.width) player.x += player.dx;
@@ -133,62 +112,67 @@
 
     // Spawn Logic
     function spawnLevel() {
-        if (currentItemIndex >= items.length) return; // Win State logic handled in update
+        if (currentItemIndex >= items.length) return; 
 
-        // Update player emoji to match what they are hunting (or current mood)
         player.emoji = items[currentItemIndex].playerFace;
         
         // Spawn Item with Distance Check
         let validSpawn = false;
         let attempts = 0;
-        // Require item to be at least 60% of the screen dimension away
         const minDistance = Math.min(canvas.width, canvas.height) * 0.6; 
 
         while (!validSpawn && attempts < 20) {
             const testX = Math.random() * (canvas.width - 60) + 30;
             const testY = Math.random() * (canvas.height - 60) + 30;
-
             const dx = testX - player.x;
             const dy = testY - player.y;
             const distance = Math.sqrt(dx*dx + dy*dy);
-
             if (distance > minDistance) {
-                floatingItem = {
-                    x: testX,
-                    y: testY,
-                    size: 35,
-                    angle: 0,
-                    data: items[currentItemIndex]
-                };
+                floatingItem = { x: testX, y: testY, size: 35, angle: 0, data: items[currentItemIndex] };
                 validSpawn = true;
             }
             attempts++;
         }
-
-        // Fallback
         if (!validSpawn) {
-            floatingItem = {
-                x: Math.random() * (canvas.width - 60) + 30,
-                y: Math.random() * (canvas.height - 60) + 30,
-                size: 35,
-                angle: 0,
-                data: items[currentItemIndex]
-            };
+            floatingItem = { x: Math.random() * (canvas.width - 60) + 30, y: Math.random() * (canvas.height - 60) + 30, size: 35, angle: 0, data: items[currentItemIndex] };
         }
 
-        // Spawn Obstacles (Increase with level)
+        // Spawn Obstacles with Safety Zone
         obstacles = [];
-        let obstacleCount = currentItemIndex + 3; // Base difficulty
-
-        // Final Level Challenge: Adjusted to be more fair
-        if (currentItemIndex === items.length - 1) {
-            obstacleCount = 10; // Reduced from 20 to 10 for better playability
-        }
+        let obstacleCount = currentItemIndex + 3; 
+        if (currentItemIndex === items.length - 1) obstacleCount = 10;
 
         for(let i=0; i<obstacleCount; i++) {
+            let validObs = false;
+            let obsX, obsY;
+            let obsAttempts = 0;
+
+            // Attempt to find a spawn point far from player
+            while(!validObs && obsAttempts < 15) {
+                obsX = Math.random() * canvas.width;
+                obsY = Math.random() * canvas.height;
+                
+                // Calculate distance to player
+                const dx = obsX - (player.x + player.size/2);
+                const dy = obsY - (player.y + player.size/2);
+                const distToPlayer = Math.sqrt(dx*dx + dy*dy);
+
+                // Safe radius of 200px
+                if (distToPlayer > 200) {
+                    validObs = true;
+                }
+                obsAttempts++;
+            }
+            
+            // Fallback if we couldn't find a spot (rare)
+            if (!validObs) {
+                 obsX = (player.x + 300) % canvas.width; // Force offset
+                 obsY = (player.y + 300) % canvas.height;
+            }
+
             obstacles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
+                x: obsX,
+                y: obsY,
                 size: 30,
                 speedX: (Math.random() - 0.5) * 4,
                 speedY: (Math.random() - 0.5) * 4,
@@ -381,52 +365,34 @@
         if (score === items.length && !floatingItem) {
             ctx.save();
             ctx.textAlign = "center";
-            
-            // Rainbow Color Effect for the Birthday Message
             ctx.fillStyle = `hsl(${Date.now() / 10 % 360}, 100%, 60%)`;
-            
-            // Responsive font size
             const mainFontSize = Math.min(canvas.width, 500) / 15; 
             ctx.font = `${mainFontSize}px 'Press Start 2P'`;
-            
             ctx.fillText("HAPPY BIRTHDAY", canvas.width/2, canvas.height/2 - 60);
             ctx.fillText("DEMILADE!", canvas.width/2, canvas.height/2 - 10);
-
-            // Subtext
             ctx.fillStyle = "white";
             ctx.font = "12px 'Press Start 2P'";
             ctx.fillText("You are my greatest adventure.", canvas.width/2, canvas.height/2 + 40);
-            
             ctx.fillStyle = "#ff00ff"; // Pink
             ctx.fillText("I love you! ❤️", canvas.width/2, canvas.height/2 + 70);
-            
             ctx.restore();
-            
-            // Constant Fireworks
             if(Math.random() < 0.15) {
                 createExplosion(Math.random()*canvas.width, Math.random()*canvas.height, '#ff00ff');
             }
         }
-
         requestAnimationFrame(update);
     }
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
-        
-        // Ensure player starts in center relative to current resize
         player.x = canvas.width / 2 - player.size / 2;
         player.y = canvas.height / 2 - player.size / 2;
-        
         gameActive = true;
         spawnLevel();
         update();
     }
     
-    // Initial setup
     resize();
-    // Center player initially just in case
     player.x = canvas.width / 2;
     player.y = canvas.height / 2;
-
     window.startGame = startGame;
