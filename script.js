@@ -137,7 +137,12 @@
         // Spawn Obstacles with Safety Zone
         obstacles = [];
         let obstacleCount = currentItemIndex + 3; 
-        if (currentItemIndex === items.length - 1) obstacleCount = 10;
+        let speedMult = 4; // Standard speed range
+
+        if (currentItemIndex === items.length - 1) {
+            obstacleCount = 12; // Increased count for final boss feel
+            speedMult = 8; // Higher variance in speed (chaos mode)
+        }
 
         for(let i=0; i<obstacleCount; i++) {
             let validObs = false;
@@ -171,8 +176,8 @@
                 x: obsX,
                 y: obsY,
                 size: 30,
-                speedX: (Math.random() - 0.5) * 4,
-                speedY: (Math.random() - 0.5) * 4,
+                speedX: (Math.random() - 0.5) * speedMult,
+                speedY: (Math.random() - 0.5) * speedMult,
                 emoji: "👾"
             });
         }
@@ -250,7 +255,19 @@
             gameOverState = true;
             gameActive = false;
             floatingItem = null;
-            document.getElementById('final-screen').style.display = 'flex';
+            
+            // Show final screen
+            const finalScreen = document.getElementById('final-screen');
+            finalScreen.style.display = 'flex';
+            // Trigger transition
+            setTimeout(() => finalScreen.classList.add('visible'), 10);
+            
+            // Hide controls and resize to fullscreen
+            const controls = document.getElementById('mobile-controls');
+            if(controls) {
+                controls.style.display = 'none';
+                resize(); // Re-adjust canvas to fill empty space
+            }
         }
     }
     window.closeModal = closeModal;
@@ -270,7 +287,11 @@
 
     function update() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawGrid();
+        
+        // Only draw grid if game is NOT over
+        if (!gameOverState) {
+            drawGrid();
+        }
         
         if (gameActive) {
             handleInput();

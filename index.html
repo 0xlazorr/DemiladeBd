@@ -43,6 +43,7 @@
             min-height: 0; /* Crucial for flex children to shrink properly */
             background: radial-gradient(circle, #2a2a2a 0%, #000 100%);
             overflow: hidden;
+            transition: all 0.5s ease;
         }
 
         /* Shake Animation for Damage */
@@ -127,6 +128,12 @@
         #final-screen {
             background: rgba(0,0,0,0.3); /* Transparent background for fireworks visibility */
             display: none;
+            opacity: 0;
+            transition: opacity 1s ease-in;
+        }
+        
+        #final-screen.visible {
+            opacity: 1;
         }
 
         h1 {
@@ -228,6 +235,7 @@
             flex-shrink: 0;
             padding: 10px;
             padding-bottom: env(safe-area-inset-bottom, 20px);
+            transition: height 0.3s ease;
         }
 
         .d-pad-btn {
