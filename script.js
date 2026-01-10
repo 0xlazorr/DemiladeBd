@@ -17,7 +17,7 @@
     const player = {
         x: 0,
         y: 0,
-        size: 40,
+        size: 28, // Smaller player size
         speed: 5,
         dx: 0,
         dy: 0,
@@ -39,6 +39,7 @@
     let particles = [];
     let obstacles = [];
     let gridOffset = 0;
+    let gameOverState = false;
 
     // Input Handling
     const keys = {};
@@ -46,7 +47,6 @@
     window.addEventListener('keyup', (e) => keys[e.key] = false);
 
     // Improved Mobile Input Logic (Stack-based)
-    // This allows holding one button, pressing another, and releasing, without losing the first input
     const heldDirections = []; 
 
     function setupMobileBtn(id, dir) {
@@ -69,12 +69,9 @@
             btn.classList.remove('active');
         };
         
-        // Add listeners
         btn.addEventListener('touchstart', start, {passive: false});
         btn.addEventListener('touchend', end, {passive: false});
-        btn.addEventListener('touchcancel', end, {passive: false}); // Handle interruptions
-        
-        // Mouse fallback for desktop testing
+        btn.addEventListener('touchcancel', end, {passive: false});
         btn.addEventListener('mousedown', start);
         btn.addEventListener('mouseup', end);
         btn.addEventListener('mouseleave', end);
@@ -164,9 +161,9 @@
                 obsAttempts++;
             }
             
-            // Fallback if we couldn't find a spot (rare)
+            // Fallback
             if (!validObs) {
-                 obsX = (player.x + 300) % canvas.width; // Force offset
+                 obsX = (player.x + 300) % canvas.width; 
                  obsY = (player.y + 300) % canvas.height;
             }
 
@@ -181,32 +178,43 @@
         }
     }
 
-    // Particle System
+    // Improved Physics Particle System
     class Particle {
         constructor(x, y, color) {
             this.x = x;
             this.y = y;
-            this.size = Math.random() * 5 + 2;
-            this.speedX = Math.random() * 6 - 3;
-            this.speedY = Math.random() * 6 - 3;
+            // Circular burst physics
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 5 + 2;
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+            
             this.color = color;
-            this.life = 100;
+            this.alpha = 1;
+            this.decay = Math.random() * 0.015 + 0.01;
+            this.gravity = 0.15; // Gravity strength
         }
         update() {
-            this.x += this.speedX;
-            this.y += this.speedY;
-            this.life -= 2;
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += this.gravity; // Apply gravity
+            this.vx *= 0.95; // Air resistance
+            this.alpha -= this.decay;
         }
         draw() {
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, this.alpha);
             ctx.fillStyle = this.color;
-            ctx.globalAlpha = this.life / 100;
-            ctx.fillRect(this.x, this.y, this.size, this.size);
-            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
     }
 
     function createExplosion(x, y, color) {
-        for (let i = 0; i < 20; i++) {
+        // More particles for bigger boom
+        for (let i = 0; i < 40; i++) {
             particles.push(new Particle(x, y, color));
         }
     }
@@ -239,9 +247,10 @@
             spawnLevel();
         } else {
             // Game Won
-            gameActive = true; 
+            gameOverState = true;
+            gameActive = false;
             floatingItem = null;
-            obstacles = []; // Clear enemies
+            document.getElementById('final-screen').style.display = 'flex';
         }
     }
     window.closeModal = closeModal;
@@ -355,31 +364,19 @@
         }
 
         // Particles
-        particles.forEach((p, index) => {
-            p.update();
-            p.draw();
-            if (p.life <= 0) particles.splice(index, 1);
-        });
+        for (let i = particles.length - 1; i >= 0; i--) {
+            particles[i].update();
+            particles[i].draw();
+            if (particles[i].alpha <= 0) particles.splice(i, 1);
+        }
 
-        // Win Text
-        if (score === items.length && !floatingItem) {
-            ctx.save();
-            ctx.textAlign = "center";
-            ctx.fillStyle = `hsl(${Date.now() / 10 % 360}, 100%, 60%)`;
-            const mainFontSize = Math.min(canvas.width, 500) / 15; 
-            ctx.font = `${mainFontSize}px 'Press Start 2P'`;
-            ctx.fillText("HAPPY BIRTHDAY", canvas.width/2, canvas.height/2 - 60);
-            ctx.fillText("DEMILADE!", canvas.width/2, canvas.height/2 - 10);
-            ctx.fillStyle = "white";
-            ctx.font = "12px 'Press Start 2P'";
-            ctx.fillText("You are my greatest adventure.", canvas.width/2, canvas.height/2 + 40);
-            ctx.fillStyle = "#ff00ff"; // Pink
-            ctx.fillText("I love you! ❤️", canvas.width/2, canvas.height/2 + 70);
-            ctx.restore();
-            if(Math.random() < 0.15) {
-                createExplosion(Math.random()*canvas.width, Math.random()*canvas.height, '#ff00ff');
+        // Background Fireworks for Final Screen
+        if (gameOverState) {
+            if(Math.random() < 0.2) { /* Increased frequency for better effect */
+                createExplosion(Math.random()*canvas.width, Math.random()*canvas.height, `hsl(${Math.random()*360}, 100%, 50%)`);
             }
         }
+        
         requestAnimationFrame(update);
     }
 
