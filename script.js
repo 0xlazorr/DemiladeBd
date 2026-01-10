@@ -1,4 +1,4 @@
-/* --- GAME ENGINE --- */
+ /* --- GAME ENGINE --- */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('game-container');
@@ -27,11 +27,11 @@
 
     // Data: Items + Corresponding Player Face
     const items = [
-        { emoji: "🍕", playerFace: "😋", text: "You have the best taste in food (and girlfriends).", title: "PIZZA POWER!", color: "#FF9F1C" },
+        { emoji: "🍕", playerFace: "😋", text: "You know what to chase!.", title: "PIZZA POWER!", color: "#FF9F1C" },
         { emoji: "💡", playerFace: "🤔", text: "Your ideas always inspire me.", title: "BIG BRAIN ENERGY", color: "#FFE66D" },
         { emoji: "🎵", playerFace: "🕺", text: "You bring rhythm and joy to my life.", title: "VIBE CHECK PASSED", color: "#00f3ff" },
         { emoji: "💪", playerFace: "😤", text: "I admire your strength and hustle.", title: "GRIND MODE", color: "#ff00ff" },
-        { emoji: "❤️", playerFace: "😍", text: "FINAL REWARD: Demilade, you are my favorite person. I love you!", title: "QUEST COMPLETE", color: "#ff0000" }
+        { emoji: "❤️", playerFace: "😍", text: "FINAL REWARD: Demilade, you are my favorite person. Happy Birthday!", title: "QUEST COMPLETE", color: "#ff0000" }
     ];
 
     let currentItemIndex = 0;
@@ -137,11 +137,9 @@
         // Spawn Obstacles with Safety Zone
         obstacles = [];
         let obstacleCount = currentItemIndex + 3; 
-        let speedMult = 4; // Standard speed range
-
+        
         if (currentItemIndex === items.length - 1) {
             obstacleCount = 12; // Increased count for final boss feel
-            speedMult = 8; // Higher variance in speed (chaos mode)
         }
 
         for(let i=0; i<obstacleCount; i++) {
@@ -176,8 +174,8 @@
                 x: obsX,
                 y: obsY,
                 size: 30,
-                speedX: (Math.random() - 0.5) * speedMult,
-                speedY: (Math.random() - 0.5) * speedMult,
+                speedX: (Math.random() - 0.5) * 4,
+                speedY: (Math.random() - 0.5) * 4,
                 emoji: "👾"
             });
         }

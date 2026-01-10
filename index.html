@@ -219,7 +219,8 @@
         /* Mobile Controls - Dedicated Area */
         #mobile-controls {
             width: 100%;
-            height: 200px; /* Slightly taller for comfort */
+            height: auto; /* Allow height to adjust to content */
+            min-height: 240px; /* Ensure enough minimum space */
             background: #111;
             border-top: 2px solid #333;
             display: none; /* Hidden by default (desktop) */
@@ -229,12 +230,12 @@
                 ". up ."
                 "left . right"
                 ". down .";
-            gap: 15px; /* Better spacing to avoid accidental clicks */
+            gap: 15px; /* Better spacing */
             z-index: 25;
             pointer-events: auto;
             flex-shrink: 0;
-            padding: 10px;
-            padding-bottom: env(safe-area-inset-bottom, 20px);
+            padding: 20px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom)); /* Dynamic safe area */
             transition: height 0.3s ease;
         }
 
@@ -296,7 +297,7 @@
     <div id="start-screen" class="overlay-screen">
         <h1>DEMILADE'S<br>HEART QUEST</h1>
         <p style="margin-bottom: 20px; font-size: 0.7rem; color: #aaa;">AVOID THE GLITCHES 👾<br>COLLECT THE ITEMS</p>
-        <button class="btn" onclick="startGame()">INSERT COIN / START</button>
+        <button class="btn" onclick="startGame()">START</button>
     </div>
 
     <!-- Final Birthday Screen -->
@@ -305,7 +306,7 @@
         <div class="final-msg">
             You conquered the glitches<br>and captured my heart (again).<br><br>
             You are my greatest adventure.<br>
-            <span style="color: var(--neon-pink); font-size: 1.2em; text-shadow: 0 0 10px var(--neon-pink);">I LOVE YOU! ❤️</span>
+            <span style="color: var(--neon-pink); font-size: 1.2em; text-shadow: 0 0 10px var(--neon-pink);">Love ❤️</span>
         </div>
         <button class="btn" onclick="location.reload()">PLAY AGAIN</button>
     </div>
@@ -327,7 +328,7 @@
 </div>
 
 <script src="script.js">
-    
+   
 </script>
 </body>
 </html>
